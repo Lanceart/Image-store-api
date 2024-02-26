@@ -23,11 +23,11 @@ const secretAccessKey = process.env.SECRET_ACCESS_KEY
 // addOrUpdateCharacter(hp);
 // ("0");
 
-getCharacterById("0ewew", "nbeginweqr").then(item => {
-  console.log(item);
-}).catch(error => {
-  console.error(error);
-});
+// getCharacterById("0ewew", "nbeginweqr").then(item => {
+//   console.log(item);
+// }).catch(error => {
+//   console.error(error);
+// });
 
 // deleteCharacter("0ewew", "nbeginweqr").then(item => {
 //   console.log(item);
@@ -95,7 +95,7 @@ app.use('/uploads', express.static('uploads'));
 app.get('/text-to-image', (req, res) => {
     const text = req.query.text || 'Hello, World!';
     const width = 800;
-    const height = 200;
+    const height = 600;
     const canvas = createCanvas(width, height);
     const context = canvas.getContext('2d');
 
