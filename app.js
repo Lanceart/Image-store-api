@@ -1,12 +1,13 @@
 const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
 const dotenv = require('dotenv');
-const crypto = require('crypto');
+
 const sharp = require('sharp');
 const {getCharacterById, getCharacters, addOrUpdateCharacter, deleteCharacter} = require('./dynamo');
+const {uploadToS3, getImageById, getImageKeysByUser} = require('./s3');
 
 dotenv.config()
 
-const randomImageName = (bytes = 32) => crypto.randomBytes(bytes).toString('hex');
+// const randomImageName = (bytes = 32) => crypto.randomBytes(bytes).toString('hex');
 
 const bucketName = process.env.BUCKET_NAME
 const region = process.env.BUCKET_REGION
@@ -66,28 +67,60 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({ storage: storage });
-
+// const upload = multer({ storage: storage });
+const upload = multer();
 
 
 
 app.post('/upload', upload.single('image'), async (req, res) => {
   // if (err) throw err;
   // const buffer = await sharp(req.file.buffer).resize({height: 1920,width: 1080, fit:"contain"}).toBuffer();
-  const params = {
-    Bucket: bucketName,
-    Key: randomImageName(),//req.file.originalname,
-    Body: req.file.buffer,
-    ContentType: req.file.mimetype,
-  }
+  
+  // const params = {
+  //   Bucket: bucketName,
+  //   Key: randomName,//req.file.originalname,
+  //   Body: req.file.buffer,
+  //   ContentType: req.file.mimetype,
+  // }
 
-  const command = new PutObjectCommand(params);
+  
+
+  // const command = new PutObjectCommand(params);
   console.log('Bucket Name:', bucketName);
-  await s3Client.send(command);
+  // await s3Client.send(command);
+  const {file} = req;
+  const { error, key } = await uploadToS3({ file });
+  
+  const db_list = {
+    "key": key,
+    "type":"blogs",
+    // "title": req.text,
+  };
+ addOrUpdateCharacter(db_list);
 
   res.json({ message: 'Image uploaded successfully', filename: req.file.filename });
-});
 
+});
+app.get('/image/:imageId', async (req, res) => {
+  try {
+    const { imageId } = req.params;
+    const data = await getImageById(imageId);
+
+    if (!data.Body) {
+      return res.status(404).send('Image not found');
+    }
+
+    // Assuming the image content type is known and consistent, e.g., 'image/jpeg'
+    // You might want to adjust this based on the actual content type of your images
+    res.setHeader('Content-Type', 'image/jpeg');
+
+    // Stream the image data to the response
+    data.Body.pipe(res);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Error retrieving image');
+  }
+});
 app.use('/uploads', express.static('uploads'));
 
 
@@ -132,5 +165,5 @@ app.get('/list-db', async(req, res) =>{
 }); 
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Server running on port http://localhost:${PORT}`);
 });
