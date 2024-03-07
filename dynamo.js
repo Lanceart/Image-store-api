@@ -23,7 +23,7 @@ const getCharacters = async() => {
       TableName: TABLE_NAME
     };
     const characters = await dynamoClient.scan(params).promise();
-    console.log(characters);
+    // console.log(characters);
     return characters;
   }
   

@@ -1,6 +1,6 @@
 const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
 const dotenv = require('dotenv');
-
+const cors = require('cors');
 const sharp = require('sharp');
 const {getCharacterById, getCharacters, addOrUpdateCharacter, deleteCharacter} = require('./dynamo');
 const {uploadToS3, getImageById, getImageKeysByUser} = require('./s3');
@@ -53,7 +53,8 @@ const { createCanvas } = require('canvas');
 
 
 const app = express();
-const PORT = 3000;
+app.use(cors());
+const PORT = 8080;
 
 
 app.use(express.static('public'));
@@ -86,7 +87,7 @@ app.post('/upload', upload.single('image'), async (req, res) => {
   
 
   // const command = new PutObjectCommand(params);
-  console.log('Bucket Name:', bucketName);
+  // console.log('Bucket Name:', bucketName);
   // await s3Client.send(command);
   const {file} = req;
   const { error, key } = await uploadToS3({ file });
@@ -101,6 +102,22 @@ app.post('/upload', upload.single('image'), async (req, res) => {
   res.json({ message: 'Image uploaded successfully', filename: req.file.filename });
 
 });
+
+app.delete('/image-delete/:key', async (req, res) => {
+  try {
+    const key = req.params.key;
+
+    const result = await deleteCharacter({ key},"blogs");
+    if (result.deletedCount === 0) {
+      return res.status(404).send('Image not found');
+    }
+
+    res.send('Image deleted successfully');
+  } catch (error) {
+    res.status(500).send(error.toString());
+  }
+});
+
 app.get('/image/:imageId', async (req, res) => {
   try {
     const { imageId } = req.params;
